@@ -609,6 +609,9 @@ window.GUIDE_DATA = {"fps":29.97,"start":520,"frames":300,"joints":["pelvis","le
     { t: "Review against the video", s: "video, landmarks and your rig side by side", tab: "Review",
       body: `<div class="w" style="height:70px;justify-content:center"><span class="dim">video frame 420 / 1356 with body, hand and foot landmarks</span></div>` + `<div class="w-row">` + T_("Video", true) + T_("Body", true) + T_("Hands", true) + T_("Face", false) + `</div>` + `<div class="w-row">` + W_("Line up with", "X Bot") + B_("Camera + video in 3D view") + `</div>` + S_("Camera background", "0.60", 60, "hl"),
       notes: ["The video follows the timeline, next to the docked 3D view.", "Camera + video adds a camera placed like the real one, with the video behind your characters: the quickest way to see whether the motion lines up."] },
+    { t: "Clean up the take", s: "problems found for you, one-click fixes", tab: "Clean up",
+      body: `<div class="w-row">` + W_("Take", "jj") + `<div class="w"><span class="dim">93 problems: 59 pop, 31 foot slide, 3 jitter</span></div></div>` + `<div class="w" style="height:46px;align-items:center;gap:3px;padding:0 10px"><span class="dim" style="font-size:11px;width:60px">problems</span>` + [8, 21, 30, 44, 51, 63, 70, 82, 90].map((x, i) => `<i style="position:relative;left:${x * 0.2}%;width:6px;height:18px;border-radius:3px;background:${["#d966e6", "#4dccdb", "#f2d94d"][i % 3]}"></i>`).join("") + `</div>` + `<div class="w-row">` + B_("Fix the selected problem") + B_("Fix all") + B_("Smooth") + B_("Bridge") + B_("Plant left") + `</div>` + `<div class="w-row">` + T_("Cleaned", true, "hl") + T_("Raw solve", false) + T_("Problems on the timeline", true) + `</div>`,
+      notes: ["Problems are found automatically: tracking lost, low confidence, pops (a joint jumping for a frame), jitter, and planted feet that slide or were wrongly marked as planted.", "Click one on the strip or in the list to jump to it, then Fix, or press Fix all. On the burpee clip (RTMW3D) Fix all took 93 problems down to 3.", "Fixes never change the capture: they are kept next to the take, replayed whenever it is baked, and can be undone or cleared. The characters carrying the take are re-baked after each fix.", "Raw solve shows the same take before any automatic clean-up, for comparison."] },
     { t: "Bake onto characters", s: "one animation, any number of rigs", tab: "Retarget",
       body: `<div class="w-group">1 Animation</div><div class="w-row">` + T_("Captured motion", true, "hl") + T_("From another character", false) + `</div>` + `<div class="w-group">2 Characters to bake onto</div>` + C_([["X Bot", "jumping jacks", "MIXAMO", true], ["CC3 Base Plus", "jumping jacks", "CC3", true], ["Manny", "no animation", "UE5", true], ["model human", "no animation", "AUTO-RIG", false]]) + `<div class="w-row">` + T_("Foot lock (IK)", true) + T_("In place", false) + `</div>` + B_("Bake onto 3 characters"),
       notes: ["Click cards to pick characters; the rig type is detected from the bone names.", "From another character copies any animated rig onto the others: Mixamo onto Rigify, CC4 onto UE5...", "Re-baking takes seconds and never re-runs the capture. Each bake is a new action named after the character and the take."] },
@@ -623,7 +626,7 @@ window.GUIDE_DATA = {"fps":29.97,"start":520,"frames":300,"joints":["pelvis","le
   function renderStep() {
     $("#steps").innerHTML = STEPS.map((s, i) => `<button class="step" role="tab" data-i="${i}" aria-selected="${i === stepI}"><span class="n">${i + 1}</span><span>${s.t}<small>${s.s}</small></span></button>`).join("");
     const s = STEPS[stepI];
-    const tabs = ["Capture", "Characters", "Animations", "Retarget", "Review", "Live", "Export"].map(t => `<span class="${t === s.tab ? "on" : ""}">${t}</span>`).join("");
+    const tabs = ["Capture", "Characters", "Animations", "Retarget", "Review", "Clean up", "Live", "Export"].map(t => `<span class="${t === s.tab ? "on" : ""}">${t}</span>`).join("");
     $("#mock").innerHTML = `<div class="mock-head"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7z" fill="var(--accent)"/></svg><b>VIDEO MOCAP</b><span class="dim" style="font-size:12px">video / webcam → retargeted animation</span></div><div class="mock-tabs">${tabs}</div><div class="mock-body">${s.body}</div><div class="mock-note"><span class="label">Step ${stepI + 1} of ${STEPS.length} · ${s.t}</span><ul>${s.notes.map(n => `<li>${n}</li>`).join("")}</ul><div style="display:flex;gap:8px;margin-top:4px"><button class="btn" id="prev" ${stepI === 0 ? "disabled" : ""}>Back</button><button class="btn primary" id="next" ${stepI === STEPS.length - 1 ? "disabled" : ""}>Next step</button></div></div>`;
     $("#prev").onclick = () => { stepI--; store.set("step", stepI); renderStep(); };
     $("#next").onclick = () => { stepI++; store.set("step", stepI); renderStep(); };
@@ -652,13 +655,12 @@ window.GUIDE_DATA = {"fps":29.97,"start":520,"frames":300,"joints":["pelvis","le
     ["Characters and animations", "Which characters to bake onto (click their cards), and which clip: a capture, another character's animation, or one from the animation library."],
     ["Start and end frame", "Trim fades, title cards and cut-aways before capturing."],
     ["Foot lock, In place, Extra smoothing", "Re-bake in seconds with Retarget + Bake. Extra smoothing at 3–6 Hz calms a jittery take; higher values lose detail."],
+    ["Clean-up tools", "The Clean up tab lists the take's problems with a suggested fix for each (bridge a pop, smooth jitter, plant or release a foot), plus range tools to smooth, bridge or plant any frames you choose. Undo or clear at any time; compare with the raw solve."],
     ["Blender's own tools", "The baked action is ordinary keyframes: smooth curves in the Graph Editor, layer fixes in the NLA, or key over a pose. Each bake is a new action, so experiments are safe."],
   ];
   const SOON = [
-    ["Problem flags on the timeline", "Frames with low confidence, sliding feet, fast motion or rig limits marked, each with a one-click fix."],
-    ["Paint foot contacts", "Mark or clear foot plants on a timeline; the slide fix and foot lock follow."],
-    ["Pin a joint, re-solve a range", "Hold a hand on a surface, or redo just the frames that went wrong."],
-    ["Raw / cleaned / compare views", "The comparison in the Cleanup lab, inside Blender. (The video with landmarks and the camera overlay are already in the Review tab.)"],
+    ["Pin a joint, re-solve a range", "Hold a hand on a surface, or redo just the frames that went wrong with different settings."],
+    ["Before / after in the 3D view", "The cleaned and raw solves side by side on two copies of a character."],
     ["Face capture", "Facial expressions from the same video onto ARKit / CC shape keys."],
   ];
   const det = (list, pill) => list.map(([h, d], i) => `<details${pill === "auto" && i === 0 ? " open" : ""}><summary><span class="n">${pill === "auto" ? String(i + 1).padStart(2, "0") : "•"}</span><span>${h}</span><span class="pill ${pill}">${pill === "auto" ? "auto" : pill === "you" ? "you" : "soon"}</span></summary><div class="d"><p>${d}</p></div></details>`).join("");
@@ -718,7 +720,7 @@ window.GUIDE_DATA = {"fps":29.97,"start":520,"frames":300,"joints":["pelvis","le
   /* ---------- fix it ---------- */
   const FIX = [
     ["Character is too big, small or floats", ["Set the real performer height in the Capture tab and capture again.", "Check the camera FOV: phones are about 65–75°.", "For a quick fix of a floating rig, re-bake with Foot lock on."]],
-    ["Feet skate", ["Keep Foot lock on and re-bake.", "Capture with GVHMR: on the squat test, foot slide fell from 0.9 to 0.03 cm per frame.", "Reshoot with the feet clearly in view and the camera still."]],
+    ["Feet skate", ["Open the Clean up tab: foot slides are listed; Fix plants the foot, or releases both when they were wrongly marked as planted (a jump).","Keep Foot lock on and re-bake.", "Capture with GVHMR: on the squat test, foot slide fell from 0.9 to 0.03 cm per frame.", "Reshoot with the feet clearly in view and the camera still."]],
     ["Motion is jittery", ["Re-bake with Extra smoothing at 4–6 Hz.", "Capture with GVHMR (about 2.5× less jitter on the burpee clip).", "Check the footage: small figures and dim light are the usual causes."]],
     ["Character faces the wrong way", ["Side-on shots can flip front and back with RTMW3D. Capture with GVHMR.", "Make sure the target rig faces -Y in Blender (the front view)."]],
     ["Hands or fingers look wrong", ["Fingers need the hand large in the frame (about 80 px or more).", "Smooth with Extra smoothing; fingers are the noisiest part."]],
