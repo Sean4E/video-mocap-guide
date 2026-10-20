@@ -646,7 +646,8 @@ window.GUIDE_DATA = {"fps":29.97,"start":520,"frames":300,"joints":["pelvis","le
     ["Soft joint limits", "Knees and elbows that bend backwards are eased back into range, without the jerks a hard clamp causes."],
     ["Smooth every bone", "Each bone's world orientation is low-passed (head 3 Hz, body 4 Hz, limbs 6 Hz)."],
     ["Plant the feet", "Feet that stand still in the image are marked as planted (flat or on the toes); the root is nudged so they stop sliding."],
-    ["Retarget with foot lock", "On your rig, planted ankles are pinned with IK so they stay put on the character's own proportions."],
+    ["Feet & joints pass", "Knees and elbows are kept within their anatomical range (no bending backwards, a knee barely twists or bends sideways). Each foot has a heel, a ball and a toe: planted feet are levelled flat on the floor or stand on their toes, the body is raised or lowered so nothing floats or sinks, and a leg solve holds each planted foot still."],
+    ["Retarget with foot lock", "On your character, planted ankles are pinned with IK at the character's own standing height, the toes hold the floor on tip-toe frames, and the hips drop slightly where a differently proportioned leg could not reach."],
   ];
   const YOU = [
     ["Footage", "The biggest lever by far. See the Footage tab."],
@@ -719,6 +720,7 @@ window.GUIDE_DATA = {"fps":29.97,"start":520,"frames":300,"joints":["pelvis","le
 
   /* ---------- fix it ---------- */
   const FIX = [
+    ["Feet float, sink or knees bend the wrong way", ["Review › Problems & fixes lists Joint past its range and Feet off the floor: press Feet & joints pass (or Fix all). New captures get it automatically.", "Keep Foot lock on when baking: planted feet are held at the character's own standing height.", "Still off on one character? Check that it stands on its object's origin in its rest pose."]],
     ["Character is too big, small or floats", ["Set the real performer height in the Capture tab and capture again.", "Check the camera FOV: phones are about 65–75°.", "For a quick fix of a floating rig, re-bake with Foot lock on."]],
     ["Feet skate", ["Open the Clean up tab: foot slides are listed; Fix plants the foot, or releases both when they were wrongly marked as planted (a jump).","Keep Foot lock on and re-bake.", "Capture with GVHMR: on the squat test, foot slide fell from 0.9 to 0.03 cm per frame.", "Reshoot with the feet clearly in view and the camera still."]],
     ["Motion is jittery", ["Re-bake with Extra smoothing at 4–6 Hz.", "Capture with GVHMR (about 2.5× less jitter on the burpee clip).", "Check the footage: small figures and dim light are the usual causes."]],
