@@ -78,6 +78,7 @@ a { color: var(--accent-hover); }
 .tab[aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); }
 .tab svg { width: 16px; height: 16px; }
 .panel-body { padding: 22px 22px 26px; display: grid; gap: 22px; }
+[hidden] { display: none !important; }
 .section-head { display: grid; gap: 6px; max-width: 70ch; }
 .footer-hint { display: flex; gap: 16px; flex-wrap: wrap; padding: 14px 22px; border-top: 1px solid var(--divider); color: var(--dim); font-size: 12.5px; }
 
@@ -204,6 +205,15 @@ td.num { font-family: var(--mono); text-align: right; font-variant-numeric: tabu
 .fix { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 16px; }
 .symptoms { display: grid; gap: 6px; align-content: start; }
 .answer { display: grid; gap: 10px; }
+.mcards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.mcard { position: relative; background: var(--card, rgba(255,255,255,.04)); border-radius: 10px; padding: 26px 6px 8px; text-align: center; font-size: 12px; border: 1px solid transparent; }
+.mcard.sel { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent); }
+.mcard .fig { height: 34px; display: grid; place-items: center; opacity: .75; }
+.mcard small { display: block; opacity: .6; font-size: 10.5px; }
+.badge { position: absolute; top: 6px; right: 6px; font-size: 9.5px; font-weight: 700; letter-spacing: .03em; padding: 2px 7px; border-radius: 99px; color: #fff; }
+.badge.light { color: #14141a; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.legend .badge { position: static; }
 .answer ol { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
 
 @media (max-width: 900px) {
@@ -352,7 +362,7 @@ td.num { font-family: var(--mono); text-align: right; font-variant-numeric: tabu
     <div class="section-head">
       <span class="label">Retargeting</span>
       <h2>Characters it drives</h2>
-      <p class="dim">Pick any armature as the target. The profile is detected from the bone names; every one below was baked and measured in Blender (limb directions within 0.03° of the source).</p>
+      <p class="dim">Pick any characters as targets. The profile is detected from the bone names; every family below was baked and measured in Blender (limb directions within 0.03° of the source). The coloured badge is the one you see on the character cards in the add-on.</p>
     </div>
     <div class="grid rigs" id="rigs"></div>
   </section>
@@ -572,28 +582,39 @@ window.GUIDE_DATA = {"fps":29.97,"start":520,"frames":300,"joints":["pelvis","le
   const S_ = (k, v, p, extra = "") => `<div class="w slider ${extra}"><div class="fill" style="width:${p}%"></div><span>${k}</span><span class="v" style="margin-left:auto">${v}</span></div>`;
   const T_ = (k, on, extra = "") => `<div class="w toggle ${on ? "on" : ""} ${extra}"><span>${k}</span><span class="sw"></span></div>`;
   const B_ = (k) => `<div class="w btnw">${k}</div>`;
+  const BADGE = { MIXAMO: "#ed5c40", UE5: "#dbe0eb", UE4: "#9ea6b3", CC3: "#40b88c", CC4: "#299ec7", DAZ: "#4573eb", "DAZ G9": "#7359f2", M2M: "#a861e6", VRM: "#f273ad", RIGIFY: "#f5a833", "SMPL-X": "#4dccdb", "AUTO-RIG": "#9edb4d" };
+  const LIGHT = new Set(["UE5", "UE4", "SMPL-X", "AUTO-RIG", "RIGIFY"]);
+  const bdg = (t) => `<span class="badge ${LIGHT.has(t) ? "light" : ""}" style="background:${BADGE[t] || "#777"}">${t}</span>`;
+  const fig = `<svg width="22" height="32" viewBox="0 0 22 32" fill="currentColor"><circle cx="11" cy="4" r="3.4"/><path d="M5 9h12l-1.6 10h-2.2l-.6 12h-3.2l-.6-12H6.6z"/></svg>`;
+  const C_ = (cards) => `<div class="mcards">` + cards.map(([n, sub, b, sel]) => `<div class="mcard ${sel ? "sel" : ""}">${b ? bdg(b) : ""}<div class="fig">${fig}</div>${n}<small>${sub}</small></div>`).join("") + `</div>`;
   const STEPS = [
     { t: "Open the Mocap window", s: "Ctrl Shift M in the 3D View", tab: "Capture",
-      body: W_("Video file", "dance_take_01.mp4") + W_("Model", "GVHMR, best body (GPU)"),
-      notes: ["Or use the sidebar: N › Mocap › Open Mocap Window.", "The left side of the window is a live 3D view of your scene (toggle with V)."] },
-    { t: "Pick your video", s: "a clip of one performer", tab: "Capture",
-      body: `<div class="w-group">Video</div>` + W_("Video file", "dance_take_01.mp4 · Browse", "hl") + W_("Model", "GVHMR, best body (GPU)"),
-      notes: ["Any common format; unusual codecs are converted with ffmpeg automatically.", "Use Start / End frame to trim title cards, cut-aways and fades."] },
-    { t: "Choose the model", s: "quality or speed", tab: "Capture",
-      body: W_("Model", "GVHMR, best body (GPU)", "hl") + `<div class="mock-note" style="border:0;padding:4px 0 0"><ul><li><b>GVHMR</b>: cleanest body, feet stay planted, handles floor work and side-on poses. About 7 fps.</li><li><b>RTMW3D</b>: fast (about 18 fps), fingers included. Good for previews.</li><li><b>MediaPipe</b>: runs without a GPU, lowest fidelity.</li></ul></div>`,
-      notes: ["Fingers always come from RTMW3D, so GVHMR captures still have hands."] },
+      body: W_("Video file", "dance_take_01.mp4") + W_("Model", "Best available"),
+      notes: ["Or use the sidebar: N › Mocap › Open Mocap Window.", "The left side of the window is a live 3D view of your scene (toggle with V). Give the 3D view plenty of room, or press Ctrl Space to maximise it first."] },
+    { t: "Add your characters", s: "click a card, as many as you like", tab: "Characters",
+      body: `<div class="w-group">Library</div>` + C_([["X Bot", "Mixamo", "MIXAMO"], ["Camila", "Character Creator 4", "CC4"], ["Manny", "Unreal Engine 5", "UE5"], ["police female", "Mesh2Motion", "M2M"]]) + `<div class="w-row">` + B_("Thumbnails") + B_("Refresh") + `</div>`,
+      notes: ["The badge says where a character comes from: Mixamo, UE5, CC3 / CC4, Daz, Mesh2Motion, VRM, Rigify, SMPL-X, or AUTO-RIG.", "Each character gets its own collection under Video Mocap › VM Characters and its own place in the row.", "Rigs already in your scene join with Use them. A mesh with no rig at all: Rig it (next step)."] },
+    { t: "No rig? Rig it", s: "unrigged humanoids in about 10 s", tab: "Characters",
+      body: `<div class="w-group">In your scene</div>` + `<div class="w-row"><div class="w"><span>1 mesh without a rig. Select its parts (or none) and rig it.</span></div>` + B_("Rig it") + `</div>` + C_([["model human", "rigged automatically", "AUTO-RIG", true]]),
+      notes: ["The character is rendered from the front, the body landmarks are found on the render, and a full skeleton with fingers is placed inside the mesh and skinned.", "Works best on an upright character in a T or A pose with the arms away from the body.", "Clicking an unrigged file in the library does the same."] },
+    { t: "Pick your video and model", s: "quality or speed", tab: "Capture",
+      body: `<div class="w-group">Video</div>` + W_("Video file", "dance_take_01.mp4 · Browse", "hl") + W_("Model", "Best available", "hl") + `<div class="mock-note" style="border:0;padding:4px 0 0"><ul><li><b>Best available</b>: GVHMR when it is installed, else RTMW3D.</li><li><b>GVHMR</b>: cleanest body, feet stay planted, handles floor work and side-on poses. About 7 fps. Education / research licence.</li><li><b>RTMW3D</b>: fast (about 18 fps), fingers included. Good for previews.</li><li><b>MediaPipe</b>: runs without a GPU, lowest fidelity.</li></ul></div>`,
+      notes: ["Any common format; unusual codecs are converted with ffmpeg automatically.", "Use Start / End frame to trim title cards, cut-aways and fades. Fingers always come from RTMW3D, so GVHMR captures still have hands."] },
     { t: "Set height and FOV", s: "the two numbers a camera can't measure", tab: "Capture",
       body: `<div class="w-row">` + S_("Performer height (m)", "1.78", 64, "hl") + S_("Camera FOV", "65°", 50, "hl") + `</div>` + `<div class="w-row">` + S_("Start frame", "0", 0) + S_("End frame (0 = all)", "0", 0) + `</div>`,
       notes: ["Height sets the size of the whole motion: one camera has no sense of absolute scale.", "FOV: most phones are about 65–75° in landscape. A wrong FOV tilts or stretches the motion."] },
-    { t: "Pick the target rig", s: "any armature in the scene", tab: "Capture",
-      body: `<div class="w-group">Then</div>` + T_("Retarget and bake onto the target rig when done", true) + W_("Target rig", "CC3_Neutral_M", "hl"),
-      notes: ["The rig type is detected from its bone names (Rigify, Mixamo, Reallusion, Unreal, Unity, SMPL-X).", "Leave the target empty to only capture; you can retarget later from the Retarget tab."] },
     { t: "Capture", s: "runs in the background", tab: "Capture",
-      body: `<div class="w-row">` + B_("Capture") + `<div class="w slider"><div class="fill" style="width:58%"></div><span>pose 174/300</span></div></div>`,
-      notes: ["Blender stays usable while it runs. Cancel stops it.", "When it finishes, the action is baked onto your rig and the status line reports jitter and foot slide before and after cleanup."] },
-    { t: "Review and re-bake", s: "seconds, no re-capture", tab: "Retarget",
-      body: `<div class="w-group">Motion</div>` + W_("Motion file", "dance_take_01.motion.npz") + W_("Preview skeleton", "+ matching camera") + `<div class="w-group">Target</div>` + W_("Profile", "Auto-detect · Detect") + `<div class="w-row">` + T_("Foot lock (IK)", true, "hl") + T_("In place", false) + `</div>` + S_("Extra smoothing (Hz, 0 = off)", "0.0", 0, "hl") + B_("Retarget + Bake"),
-      notes: ["Preview skeleton imports the raw SMPL-X skeleton with a camera placed like the real one: look through it (Numpad 0) to check the motion lines up with the video.", "Each bake makes a new action; earlier ones stay in the file."] },
+      body: `<div class="w-row">` + B_("Capture") + `<div class="w slider"><div class="fill" style="width:58%"></div><span>GVHMR body: 2D pose (58%)</span></div></div>`,
+      notes: ["Blender stays usable while it runs; the bar follows each stage. Cancel stops it.", "The status line reports jitter and foot slide before and after cleanup."] },
+    { t: "Review against the video", s: "video, landmarks and your rig side by side", tab: "Review",
+      body: `<div class="w" style="height:70px;justify-content:center"><span class="dim">video frame 420 / 1356 with body, hand and foot landmarks</span></div>` + `<div class="w-row">` + T_("Video", true) + T_("Body", true) + T_("Hands", true) + T_("Face", false) + `</div>` + `<div class="w-row">` + W_("Line up with", "X Bot") + B_("Camera + video in 3D view") + `</div>` + S_("Camera background", "0.60", 60, "hl"),
+      notes: ["The video follows the timeline, next to the docked 3D view.", "Camera + video adds a camera placed like the real one, with the video behind your characters: the quickest way to see whether the motion lines up."] },
+    { t: "Bake onto characters", s: "one animation, any number of rigs", tab: "Retarget",
+      body: `<div class="w-group">1 Animation</div><div class="w-row">` + T_("Captured motion", true, "hl") + T_("From another character", false) + `</div>` + `<div class="w-group">2 Characters to bake onto</div>` + C_([["X Bot", "jumping jacks", "MIXAMO", true], ["CC3 Base Plus", "jumping jacks", "CC3", true], ["Manny", "no animation", "UE5", true], ["model human", "no animation", "AUTO-RIG", false]]) + `<div class="w-row">` + T_("Foot lock (IK)", true) + T_("In place", false) + `</div>` + B_("Bake onto 3 characters"),
+      notes: ["Click cards to pick characters; the rig type is detected from the bone names.", "From another character copies any animated rig onto the others: Mixamo onto Rigify, CC4 onto UE5...", "Re-baking takes seconds and never re-runs the capture. Each bake is a new action named after the character and the take."] },
+    { t: "Use the animation library", s: "Mixamo, Mesh2Motion and your own clips", tab: "Animations",
+      body: `<div class="w-row">` + W_("Collection", "All collections (200 clips)") + W_("Find", "golf") + `</div>` + C_([["Golf Drive", "human mocap · 3.1 s", "M2M", true], ["Golf idle", "human mocap · 2.0 s", "M2M"], ["Air Squat", "Exercise · 1.9 s", "MIXAMO"], ["Fast Run", "Moving · 0.7 s · moves", "MIXAMO"]]) + B_("Bake 'Golf Drive' onto 3 characters"),
+      notes: ["Animation files in your animation folders (Mixamo FBX, GLB with many clips, .blend, .bvh) are converted once with Convert N new.", "Every clip works on every character, whatever its skeleton.", "Free clips: run scripts/fetch_free_assets.py for the 178 CC0 Mesh2Motion animations."] },
     { t: "Export", s: "FBX, glTF or BVH", tab: "Export",
       body: W_("Format", "FBX (rig + animation)", "hl") + W_("Export to", "//exports/dance_take_01") + B_("Export"),
       notes: ["FBX for game engines and other apps, glTF (.glb) for the web, BVH for motion-only tools.", "Export canonical BVH writes the SMPL-X skeleton directly, with no rig."] },
@@ -602,7 +623,7 @@ window.GUIDE_DATA = {"fps":29.97,"start":520,"frames":300,"joints":["pelvis","le
   function renderStep() {
     $("#steps").innerHTML = STEPS.map((s, i) => `<button class="step" role="tab" data-i="${i}" aria-selected="${i === stepI}"><span class="n">${i + 1}</span><span>${s.t}<small>${s.s}</small></span></button>`).join("");
     const s = STEPS[stepI];
-    const tabs = ["Capture", "Retarget", "Live", "Export"].map(t => `<span class="${t === s.tab ? "on" : ""}">${t}</span>`).join("");
+    const tabs = ["Capture", "Characters", "Animations", "Retarget", "Review", "Live", "Export"].map(t => `<span class="${t === s.tab ? "on" : ""}">${t}</span>`).join("");
     $("#mock").innerHTML = `<div class="mock-head"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7z" fill="var(--accent)"/></svg><b>VIDEO MOCAP</b><span class="dim" style="font-size:12px">video / webcam → retargeted animation</span></div><div class="mock-tabs">${tabs}</div><div class="mock-body">${s.body}</div><div class="mock-note"><span class="label">Step ${stepI + 1} of ${STEPS.length} · ${s.t}</span><ul>${s.notes.map(n => `<li>${n}</li>`).join("")}</ul><div style="display:flex;gap:8px;margin-top:4px"><button class="btn" id="prev" ${stepI === 0 ? "disabled" : ""}>Back</button><button class="btn primary" id="next" ${stepI === STEPS.length - 1 ? "disabled" : ""}>Next step</button></div></div>`;
     $("#prev").onclick = () => { stepI--; store.set("step", stepI); renderStep(); };
     $("#next").onclick = () => { stepI++; store.set("step", stepI); renderStep(); };
@@ -627,7 +648,8 @@ window.GUIDE_DATA = {"fps":29.97,"start":520,"frames":300,"joints":["pelvis","le
   const YOU = [
     ["Footage", "The biggest lever by far. See the Footage tab."],
     ["Performer height and camera FOV", "Set once per shoot. Wrong values scale, tilt or stretch everything."],
-    ["Model", "GVHMR for final animation, RTMW3D for quick previews, MediaPipe without a GPU."],
+    ["Model", "Best available picks GVHMR when it is installed (final animation), else RTMW3D (quick previews). MediaPipe runs without a GPU."],
+    ["Characters and animations", "Which characters to bake onto (click their cards), and which clip: a capture, another character's animation, or one from the animation library."],
     ["Start and end frame", "Trim fades, title cards and cut-aways before capturing."],
     ["Foot lock, In place, Extra smoothing", "Re-bake in seconds with Retarget + Bake. Extra smoothing at 3–6 Hz calms a jittery take; higher values lose detail."],
     ["Blender's own tools", "The baked action is ordinary keyframes: smooth curves in the Graph Editor, layer fixes in the NLA, or key over a pose. Each bake is a new action, so experiments are safe."],
@@ -636,7 +658,8 @@ window.GUIDE_DATA = {"fps":29.97,"start":520,"frames":300,"joints":["pelvis","le
     ["Problem flags on the timeline", "Frames with low confidence, sliding feet, fast motion or rig limits marked, each with a one-click fix."],
     ["Paint foot contacts", "Mark or clear foot plants on a timeline; the slide fix and foot lock follow."],
     ["Pin a joint, re-solve a range", "Hold a hand on a surface, or redo just the frames that went wrong."],
-    ["Raw / cleaned / compare views", "The comparison in the Cleanup lab, inside Blender, with the source video."],
+    ["Raw / cleaned / compare views", "The comparison in the Cleanup lab, inside Blender. (The video with landmarks and the camera overlay are already in the Review tab.)"],
+    ["Face capture", "Facial expressions from the same video onto ARKit / CC shape keys."],
   ];
   const det = (list, pill) => list.map(([h, d], i) => `<details${pill === "auto" && i === 0 ? " open" : ""}><summary><span class="n">${pill === "auto" ? String(i + 1).padStart(2, "0") : "•"}</span><span>${h}</span><span class="pill ${pill}">${pill === "auto" ? "auto" : pill === "you" ? "you" : "soon"}</span></summary><div class="d"><p>${d}</p></div></details>`).join("");
   $("#pipe").innerHTML = det(AUTO, "auto");
@@ -678,16 +701,19 @@ window.GUIDE_DATA = {"fps":29.97,"start":520,"frames":300,"joints":["pelvis","le
 
   /* ---------- rigs ---------- */
   const RIGS = [
-    ["SMPL-X body", "neutral, female, male", "canonical", "Built from your SMPL-X download. Same skeleton as the capture, so nothing is translated."],
-    ["Mixamo", "X Bot, Y Bot, any mixamorig:", "mixamo", "Any mixamorigN: prefix or none; the FBX import's 90° rotation and 0.01 scale are handled."],
-    ["Reallusion CC3/CC4", "Base Plus, Neutral, Toon", "reallusion_cc", "CC_Base_ skeleton from FBX. Twist bones follow their parents."],
-    ["Unreal Engine 5", "UE5-Blender-Rig (Manny)", "ue5_blender_rig", "Drives the FK controls and switches IK to FK. Its knees bend at most 90°, so deep squats are limited by the rig."],
-    ["Unreal mannequin", "UE5 / UE4 skeleton", "unreal_mannequin", "Plain deform skeletons; translation on the pelvis, root stays at the origin."],
-    ["Rigify", "generated rig", "rigify", "Drives the FK controls (torso, chest, limbs, fingers), never the deform bones, so the rig stays animator-friendly."],
-    ["Unity Humanoid", "HumanBodyBones names", "unity_humanoid", "\"Left Upper Arm\" style names match too."],
-    ["Anything else", "auto-detected", "generic", "Bone names are matched by keywords and sides. Check the mapping, then save it as a profile."],
+    ["SMPL-X body", "neutral, female, male", "canonical", "SMPL-X", "Built from your SMPL-X download. Same skeleton as the capture, so nothing is translated."],
+    ["Mixamo", "X Bot, Y Bot, any mixamorig:", "mixamo", "MIXAMO", "Any mixamorigN: prefix or none; the FBX import's 90° rotation and 0.01 scale are handled. Also covers AI auto-riggers that output Mixamo-style rigs."],
+    ["Character Creator 3 / 4", "Base Plus, Neutral, Toon, Camila", "reallusion_cc", "CC4", "CC_Base_ skeleton from FBX (also ActorCore and AccuRIG). Twist bones follow their parents."],
+    ["Unreal Engine 5", "Manny / Quinn skeleton, UE5-Blender-Rig", "unreal_mannequin", "UE5", "Translation on the pelvis, root stays at the origin. The control rig is driven through its FK controls, or stripped to the skeleton."],
+    ["Mesh2Motion", "29 free characters", "unreal_mannequin_ue4", "M2M", "Free CC0 characters and 178 animations on a UE4-style skeleton: scripts/fetch_free_assets.py downloads them."],
+    ["Daz Genesis 8 / 9", "G8 / G8.1 and G9 figures", "daz_genesis8", "DAZ", "Twist, carpal and helper bones are left unanimated. Genesis 9 names are not yet checked against a real export."],
+    ["VRoid / VRM", "anime and VTuber characters", "vroid_vrm", "VRM", "J_Bip_ bone names; .vrm files load when the VRM add-on is installed."],
+    ["Rigify", "generated rig", "rigify", "RIGIFY", "Drives the FK controls (torso, chest, limbs, fingers), never the deform bones, so the rig stays animator-friendly."],
+    ["Unity Humanoid", "HumanBodyBones names", "unity_humanoid", "", "\"Left Upper Arm\" style names match too."],
+    ["No rig at all", "any upright humanoid mesh", "auto-rig", "AUTO-RIG", "Rig it builds a full skeleton with fingers inside the mesh and skins it, ready for captures and library clips."],
+    ["Anything else", "auto-detected", "generic", "", "Bone names are matched by keywords and sides. Check the mapping, then save it as a profile."],
   ];
-  $("#rigs").innerHTML = RIGS.map(([n, s, p, d]) => `<div class="card rig"><h3>${n}</h3><p class="dim" style="font-size:12.5px">${s}</p><p style="font-size:13px;margin-top:8px">${d}</p><div class="meta"><span class="pill auto mono" style="font-family:var(--mono)">${p}</span></div></div>`).join("");
+  $("#rigs").innerHTML = RIGS.map(([n, s, p, b, d]) => `<div class="card rig" style="position:relative">${b ? bdg(b) : ""}<h3>${n}</h3><p class="dim" style="font-size:12.5px">${s}</p><p style="font-size:13px;margin-top:8px">${d}</p><div class="meta"><span class="pill auto mono" style="font-family:var(--mono)">${p}</span></div></div>`).join("");
 
   /* ---------- fix it ---------- */
   const FIX = [
@@ -698,6 +724,10 @@ window.GUIDE_DATA = {"fps":29.97,"start":520,"frames":300,"joints":["pelvis","le
     ["Hands or fingers look wrong", ["Fingers need the hand large in the frame (about 80 px or more).", "Smooth with Extra smoothing; fingers are the noisiest part."]],
     ["It tracked the wrong person", ["Trim the clip so the performer is the biggest person at the start (Start frame).", "Crop the video to the performer before capturing."]],
     ["Limbs twist or the rig breaks", ["Use Detect in the Retarget tab and check the profile coverage is 100%.", "For control rigs (Rigify, UE5 rig) the profile switches the limbs to FK; leave them in FK after baking.", "Dump the rig (Export › Dump Rig) and add a profile for it in retarget/profiles; the Rigs tab lists the ones that exist."]],
+    ["Rig it says no person was found", ["Stand the character upright, facing the front view (-Y) or the back; arms away from the body.", "Hide props and ground planes, or select only the character's meshes before Rig it.", "Very stylised or non-human shapes may not be recognised: rig them by hand or with Rigify."]],
+    ["Fingers on an auto-rigged character are off", ["Small hands in the render are replaced by a default hand sized to the mesh; the thumb follows the default direction.", "Adjust the finger bones in Edit Mode if needed: the skinning follows them on the next Rig it."]],
+    ["The Animations tab is empty", ["Set the animation folders in the add-on preferences, then press Convert N new.", "Mixamo: download FBX (with or without skin) and drop the files in one of those folders."]],
+    ["A thumbnail is missing", ["Press Thumbnails on the Characters tab: missing ones render in the background.", "Characters added before thumbnails existed pick theirs up automatically once rendered."]],
     ["A video won't open", ["Unusual codecs are converted with ffmpeg automatically; make sure ffmpeg is installed.", "Or convert to MP4 (H.264) with HandBrake first."]],
   ];
   let fixI = 0;
