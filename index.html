@@ -237,6 +237,25 @@ td.num { font-family: var(--mono); text-align: right; font-variant-numeric: tabu
   .w-row { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) { .bar i, .meter i, .w.toggle .sw::after { transition: none; } }
+/* install tab */
+.head-tools { display: flex; gap: 10px; align-items: center; }
+.btn.dl { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; font-weight: 600; }
+.install { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); min-width: 0; }
+.dl-card { display: flex; flex-wrap: wrap; gap: 14px 24px; align-items: center; justify-content: space-between; }
+.btn.big { height: 46px; padding: 0 22px; font-size: 15px; font-weight: 600; display: inline-flex; align-items: center;
+  gap: 10px; text-decoration: none; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.steps li { display: flex; gap: 14px; align-items: flex-start; }
+.steps p { font-size: 12.5px; margin-top: 4px; line-height: 1.55; }
+.steps .num { flex: none; width: 30px; height: 30px; border-radius: 15px; background: var(--accent-soft); color: var(--accent-hover);
+  display: grid; place-items: center; font-weight: 700; }
+.grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 720px) {
+  .steps, .grid.two { grid-template-columns: 1fr; }
+  .btn.dl span, .btn.dl { font-size: 0; gap: 0; padding: 0 10px; }
+  .btn.dl svg { width: 18px; height: 18px; }
+}
+
 </style>
 </head>
 <body>
@@ -758,7 +777,8 @@ window.GUIDE_DATA = {"fps":29.97,"start":520,"frames":300,"joints":["pelvis","le
   $("#ghost").checked = ghost;
   setVersion(cur);
   frame = 60; draw();
-  const startTab = ["lab", "flow", "who", "foot", "rigs", "fix"].includes(hash) ? hash : store.get("tab", "lab");
+  const TABS = tabs.map(t => t.dataset.tab);
+  const startTab = TABS.includes(hash) ? hash : (TABS.includes(store.get("tab", "")) ? store.get("tab", "") : TABS[0]);
   showTab(startTab);
 })();
 </script>
